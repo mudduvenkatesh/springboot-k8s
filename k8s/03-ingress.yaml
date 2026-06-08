@@ -1,0 +1,35 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: helloworld-ingress
+  namespace: helloworld
+  labels:
+    app: helloworld
+  annotations:
+    # nginx ingress controller annotations
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    # Rate limiting (optional, remove if not needed)
+    # nginx.ingress.kubernetes.io/limit-rps: "10"
+spec:
+  ingressClassName: nginx
+  rules:
+    # Route: localhost/api/v1/* → helloworld-service
+    - host: localhost
+      http:
+        paths:
+          - path: /api/v1
+            pathType: Prefix
+            backend:
+              service:
+                name: helloworld-service
+                port:
+                  number: 80
+          - path: /actuator
+            pathType: Prefix
+            backend:
+              service:
+                name: helloworld-service
+                port:
+                  number: 80

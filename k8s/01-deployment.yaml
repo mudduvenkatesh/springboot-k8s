@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: helloworld-deployment
+  namespace: helloworld
+  labels:
+    app: helloworld
+    version: "1.0.0"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: helloworld
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: helloworld
+        version: "1.0.0"
+    spec:
+      containers:
+        - name: helloworld
+          image: helloworld:1.0.0
+          imagePullPolicy: Never          # Use local image (no registry)
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: "default"
+            - name: JAVA_OPTS
+              value: "-Xms256m -Xmx512m"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          # Liveness probe — restart pod if unhealthy
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 3
+          # Readiness probe — only route traffic when ready
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 5
+            failureThreshold: 3
+          # Startup probe — give app time to start
+          startupProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            failureThreshold: 12
+            periodSeconds: 10
+      restartPolicy: Always
