@@ -6,19 +6,16 @@ metadata:
   labels:
     app: helloworld
   annotations:
-    # nginx ingress controller annotations
-    nginx.ingress.kubernetes.io/rewrite-target: /
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
     nginx.ingress.kubernetes.io/use-regex: "true"
-    # Rate limiting (optional, remove if not needed)
-    # nginx.ingress.kubernetes.io/limit-rps: "10"
+    # Rewrite only for API paths — UI paths are passed through as-is
 spec:
   ingressClassName: nginx
   rules:
-    # Route: localhost/api/v1/* → helloworld-service
     - host: localhost
       http:
         paths:
+          # ── Spring Boot API paths (most-specific first) ──────────────────
           - path: /api/v1
             pathType: Prefix
             backend:
@@ -26,10 +23,22 @@ spec:
                 name: helloworld-service
                 port:
                   number: 80
+
           - path: /actuator
             pathType: Prefix
             backend:
               service:
                 name: helloworld-service
+                port:
+                  number: 80
+
+          # ── Angular UI — catch-all (must be last) ────────────────────────
+          # Handles /, /index.html, and all Angular SPA routes.
+          # NGINX inside the UI pod serves index.html for unknown paths.
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: angular-ui-service
                 port:
                   number: 80
